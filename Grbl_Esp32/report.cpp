@@ -110,7 +110,14 @@ void report_status_message(uint8_t status_code)
 	
   switch(status_code) {
     case STATUS_OK: // STATUS_OK
-			grbl_send("ok\r\n"); 
+			#ifdef ENABLE_SD_CARD
+				if (SD_file_running)
+					SD_ready_next = true; // flag so system_execute_line() will send the next line
+				else				
+					grbl_send("ok\r\n");
+			#else
+				grbl_send("ok\r\n");
+			#endif					
 			break;			
     default:
 			sprintf(status, "error:%d\r\n", status_code);
@@ -474,10 +481,13 @@ void report_build_info(char *line)
 	#ifdef ENABLE_BLUETOOTH
 		strcat(build_info,"B");
 	#endif
+	#ifdef ENABLE_SD_CARD
+		strcat(build_info,"S");
+	#endif
   #ifndef ENABLE_RESTORE_EEPROM_WIPE_ALL // NOTE: Shown when disabled.
     strcat(build_info,"*");
   #endif
-  #ifndef ENABLE_RESTORE_EEPROM_DEFAULT_SETTINGS // NOTE: Shown when disabled.
+  #ifndef ENABLE_RESTORE_EEPROM_DEFAULT_SETTINGS // NOTE: Shown when disabled. 
     strcat(build_info,"$");
   #endif
   #ifndef ENABLE_RESTORE_EEPROM_CLEAR_PARAMETERS // NOTE: Shown when disabled.
@@ -703,6 +713,13 @@ void report_realtime_status()
       }  
     }
   #endif
+	
+	#ifdef ENABLE_SD_CARD
+		if (SD_file_running) {
+			sprintf(temp, "|SD:%4.2f", sd_report_perc_complete());
+			strcat(status, temp);
+		}
+	#endif
 
   strcat(status, ">\r\n");
 	

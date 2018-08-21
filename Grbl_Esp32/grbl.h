@@ -52,6 +52,11 @@
 #include "spindle_control.h"
 #include "stepper.h"
 #include "jog.h"
+
 #ifdef ENABLE_BLUETOOTH
 	#include "grbl_bluetooth.h"
+#endif
+
+#ifdef ENABLE_SD_CARD	
+	#include "grbl_sd.h"
 #endif
