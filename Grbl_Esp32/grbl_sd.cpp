@@ -25,6 +25,8 @@
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
 #define LINE_FLAG_COMMENT_SEMICOLON bit(2)
 
+
+
 File myFile;
 char fileTypes[FILE_TYPE_COUNT][8] = {".NC", ".TXT", ".GCODE"}; // filter out files not of these types (s/b UPPERCASE)
 bool SD_file_running = false; // a file has started but not completed
@@ -40,7 +42,7 @@ bool sd_mount() {
 }
 
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
-    char ucase_filename[128]; // to help filter by extension
+    char temp_filename[128]; // to help filter by extension	and report ...	TODO: 128 needs a definition based on something
 		
     File root = fs.open(dirname);
     if(!root){
@@ -59,22 +61,22 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
                 listDir(fs, file.name(), levels -1);
             }
         } else {
-					strcpy(ucase_filename, file.name()); // make a copy
+					strcpy(temp_filename, file.name()); // make a copy
 					
 					// convert it to uppercase so it is easy to filter
 					for(int i = 0; i <= strlen(file.name()); i++){
-						ucase_filename[i] = toupper(ucase_filename[i]);
+						temp_filename[i] = toupper(temp_filename[i]);
 					}
 					
 					// now filter for accetable file types
 					for (uint8_t i=0; i < FILE_TYPE_COUNT; i++) // make sure it is a valid file type
 					{
-						if (strstr(ucase_filename, fileTypes[i])) { 
-							Serial.printf("[FILE:%s,SIZE:%d]\r\n", file.name(), file.size());  // [FILE:/frodo.nc SIZE:12546]
+						if (strstr(temp_filename, fileTypes[i])) { 							
+							sprintf(temp_filename, "[FILE:%s,SIZE:%d]\r\n", file.name(), file.size()); // [FILE:/frodo.nc,SIZE:12546]
+							grbl_send(temp_filename);
 							break;
 						}
-					}
-            
+					}            
         }
         file = root.openNextFile();
     }
@@ -156,7 +158,6 @@ boolean readFileLine(char *line) {
         {
           line[index] = '\0';
 					report_status_message(STATUS_OVERFLOW);
-          Serial.printf("File line too long: %s", line);
           return false;
         }
   }

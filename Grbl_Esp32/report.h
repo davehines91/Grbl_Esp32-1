@@ -69,6 +69,8 @@
 #define STATUS_SD_DIR_NOT_FOUND 63 // SD Card directory not found
 #define STATUS_SD_FILE_EMPTY 64 // SD Card directory not found
 
+#define STATUS_BT_FAIL_BEGIN 70  // Bluetooth failed to start
+
 
 
 // Define Grbl alarm codes. Valid values (1-255). 0 is reserved.

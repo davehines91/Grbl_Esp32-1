@@ -52,8 +52,9 @@ void setup() {
 	char line[LINE_BUFFER_SIZE];
 	settings_read_build_info(line);
 	if (line[0] != '\0') {
-		Serial.printf("Starting Bluetooth:%s", line);
-		bluetooth_init(line);
+		// just send to serial because it is the only interface available
+		Serial.printf("Starting Bluetooth:%s", line); 
+		bluetooth_init(line);	
 	}
 	#endif
 

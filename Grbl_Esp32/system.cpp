@@ -413,7 +413,12 @@ uint8_t system_check_travel_limits(float *target)
 // defined by the CONTROL_PIN_INDEX in the header file.
 uint8_t system_control_get_state()
 {
-  uint8_t control_state = 0;
+	#ifdef IGNORE_CONTROL_PINS
+		return 0;
+	#endif
+	
+	
+  uint8_t control_state = 0;	
   if (digitalRead(CONTROL_SAFETY_DOOR_PIN)) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR; } 
   if (digitalRead(CONTROL_RESET_PIN)) { control_state |= CONTROL_PIN_INDEX_RESET; }
   if (digitalRead(CONTROL_FEED_HOLD_PIN)) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
