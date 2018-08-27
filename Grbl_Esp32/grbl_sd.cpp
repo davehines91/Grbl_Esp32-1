@@ -42,7 +42,7 @@ bool sd_mount() {
 }
 
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
-    char temp_filename[128]; // to help filter by extension	and report ...	TODO: 128 needs a definition based on something
+    char temp_filename[128]; // to help filter by extension	TODO: 128 needs a definition based on something
 		
     File root = fs.open(dirname);
     if(!root){
@@ -71,9 +71,8 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
 					// now filter for accetable file types
 					for (uint8_t i=0; i < FILE_TYPE_COUNT; i++) // make sure it is a valid file type
 					{
-						if (strstr(temp_filename, fileTypes[i])) { 							
-							sprintf(temp_filename, "[FILE:%s,SIZE:%d]\r\n", file.name(), file.size()); // [FILE:/frodo.nc,SIZE:12546]
-							grbl_send(temp_filename);
+						if (strstr(temp_filename, fileTypes[i])) { 				
+							grbl_sendf("[FILE:%s,SIZE:%d]\r\n", file.name(), file.size());
 							break;
 						}
 					}            

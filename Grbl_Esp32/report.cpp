@@ -63,6 +63,31 @@ void grbl_send(char *text)
 	Serial.print(text);	
 }
 
+// This is a formating version of the grbl_send(...) function that work like printf
+void grbl_sendf(const char *format, ...)
+{
+    char loc_buf[64];
+    char * temp = loc_buf;
+    va_list arg;
+    va_list copy;
+    va_start(arg, format);
+    va_copy(copy, arg);
+    size_t len = vsnprintf(NULL, 0, format, arg);
+    va_end(copy);
+    if(len >= sizeof(loc_buf)){
+        temp = new char[len+1];
+        if(temp == NULL) {
+            return;
+        }
+    }
+    len = vsnprintf(temp, len+1, format, arg);
+    grbl_send(temp);
+    va_end(arg);
+    if(len > 64){
+        delete[] temp;
+    }
+}
+
 // formats axis values into a string and returns that string in rpt
 static void report_util_axis_values(float *axis_value, char *rpt) {
   uint8_t idx;
@@ -104,10 +129,7 @@ void get_state(char *foo)
 // from a critical error, such as a triggered hard limit. Interface should always monitor for these
 // responses.
 void report_status_message(uint8_t status_code)
-{
-	
-	char status[15];
-	
+{	
   switch(status_code) {
     case STATUS_OK: // STATUS_OK
 			#ifdef ENABLE_SD_CARD
@@ -120,8 +142,7 @@ void report_status_message(uint8_t status_code)
 			#endif					
 			break;			
     default:
-			sprintf(status, "error:%d\r\n", status_code);
-			grbl_send(status);
+			grbl_sendf("error:%d\r\n", status_code);
   }
 }
 
@@ -129,12 +150,8 @@ void report_status_message(uint8_t status_code)
 
 // Prints alarm messages.
 void report_alarm_message(uint8_t alarm_code)
-{
-	char alarm[10];
-	
-	sprintf(alarm, "ALARM:%d\r\n", alarm_code);
-	grbl_send(alarm);
-	
+{	
+	grbl_sendf("ALARM:%d\r\n", alarm_code);		
   delay_ms(500); // Force delay to ensure message clears serial write buffer.
 }
 
@@ -145,37 +162,30 @@ void report_alarm_message(uint8_t alarm_code)
 // is installed, the message number codes are less than zero.
 void report_feedback_message(uint8_t message_code)
 {
-	char msg[40];
-	
-	strcpy(msg, "[MSG:");	
-  
-  switch(message_code) {
+	switch(message_code) {
     case MESSAGE_CRITICAL_EVENT:
-      strcat(msg, "Reset to continue"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Reset to continue"); break;
     case MESSAGE_ALARM_LOCK:
-      strcat(msg, "'$H'|'$X' to unlock"); break;
+      grbl_sendf("[MSG:%s]\r\n", "'$H'|'$X' to unlock"); break;
     case MESSAGE_ALARM_UNLOCK:
-      strcat(msg, "Caution: Unlocked"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Caution: Unlocked"); break;
     case MESSAGE_ENABLED:
-      strcat(msg, "Enabled"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Enabled"); break;
     case MESSAGE_DISABLED:
-      strcat(msg, "Disabled"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Disabled"); break;
     case MESSAGE_SAFETY_DOOR_AJAR:
-      strcat(msg, "Check Door"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Check Door"); break;
     case MESSAGE_CHECK_LIMITS:
-      strcat(msg, "Check Limits"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Check Limits"); break;
     case MESSAGE_PROGRAM_END:
-      strcat(msg, "Pgm End"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Pgm End"); break;
     case MESSAGE_RESTORE_DEFAULTS:
-      strcat(msg, "Restoring defaults"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Restoring defaults"); break;
     case MESSAGE_SPINDLE_RESTORE:
-      strcat(msg, "Restoring spindle"); break;
+      grbl_sendf("[MSG:%s]\r\n", "Restoring spindle"); break;
     case MESSAGE_SLEEP_MODE:
-      strcat(msg, "Sleeping"); break;
-  }  	
-	strcat(msg, "]\r\n");
-	
-	grbl_send(msg);
+      grbl_sendf("[MSG:%s]\r\n", "Sleeping"); break;
+  }  		
 }
 
 
@@ -187,7 +197,7 @@ void report_init_message()
 
 // Grbl help message
 void report_grbl_help() {	
-  grbl_send("[HLP:$$ $# $G $I $N $x=val $Nx=line $J=line $SLP $C $X $H ~ ! ? ctrl-x]\r\n"); 
+  grbl_send("[HLP:$$ $# $G $I $N $x=val $Nx=line $J=line $SLP $C $X $H $F ~ ! ? ctrl-x]\r\n"); 
 	#ifdef VERBOSE_HELP
 		#ifdef ENABLE_BLUETOOTH
 			return; // to much data for BT until fixed
@@ -423,23 +433,17 @@ void report_gcode_modes()
 
 // Prints specified startup line
 void report_startup_line(uint8_t n, char *line)
-{
-  char temp[80];
-	
-	sprintf(temp, "$N%d=%s\r\n", n, line);
-	
-	grbl_send(temp);
-	
+{	
+	grbl_sendf("$N%d=%s\r\n", n, line);	
 }
 
 void report_execute_startup_message(char *line, uint8_t status_code)
 {
 	char temp[80];
 	
-	sprintf(temp, ">%s:", line);	
-	grbl_send(temp);
+	grbl_sendf(">%s:", line);
 	
-  report_status_message(status_code);    // TODO ======================================
+  report_status_message(status_code);    // TODO reduce number of back to back BT sends 
 }
 
 // Prints build info line
