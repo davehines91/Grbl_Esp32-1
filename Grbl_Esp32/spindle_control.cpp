@@ -21,9 +21,15 @@
 #include "grbl.h"
 
 static float pwm_gradient; // Precalulated value to speed up rpm to PWM conversions.
+#include "VFD.h"
+#endif
+
 
 void spindle_init()
 {
+#ifdef RS485_HUANYANG_MOTORCONTROL
+    motorControlInit();
+#else
     pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
 	
 	// Use DIR and Enable if pins are defined
@@ -40,21 +46,30 @@ void spindle_init()
     ledcSetup(SPINDLE_PWM_CHANNEL, SPINDLE_PWM_BASE_FREQ, SPINDLE_PWM_BIT_PRECISION); // setup the channel
     ledcAttachPin(SPINDLE_PWM_PIN, SPINDLE_PWM_CHANNEL); // attach the PWM to the pin
 	#endif
-	
+#endif	
     // Start with spindle off off
 	  spindle_stop();
 }
 
 void spindle_stop()
-{		
+{	
+#ifdef RS485_HUANYANG_MOTORCONTROL
+    motorStop();
+#else	
   spindle_set_enable(false);
 	#ifdef SPINDLE_PWM_PIN
 		grbl_analogWrite(SPINDLE_PWM_CHANNEL, SPINDLE_PWM_OFF_VALUE);
 	#endif
+#endif
 }
+uint8_t SPINDLE_DIRECTION = SPINDLE_STATE_CW;
+bool spindleReversed = false;
 
 uint8_t spindle_get_state()  // returns SPINDLE_STATE_DISABLE, SPINDLE_STATE_CW or SPINDLE_STATE_CCW
 {	  
+ #ifdef RS485_HUANYANG_MOTORCONTROL
+    return(SPINDLE_DIRECTION); // Only for RS485
+ #else
   // TODO Update this when direction and enable pin are added
 	#ifndef SPINDLE_PWM_PIN
 		return(SPINDLE_STATE_DISABLE);
@@ -73,10 +88,14 @@ uint8_t spindle_get_state()  // returns SPINDLE_STATE_DISABLE, SPINDLE_STATE_CW 
 			return(SPINDLE_STATE_CW);
 		#endif		
 	}
+  #endif
 }
 
 void spindle_set_speed(uint32_t pwm_value)
 {	
+#ifdef RS485_HUANYANG_MOTORCONTROL
+   
+#else
 	#ifndef SPINDLE_PWM_PIN
 		return;
 	#endif
@@ -87,11 +106,15 @@ void spindle_set_speed(uint32_t pwm_value)
 		spindle_set_enable(pwm_value != 0);
 	#endif
 	grbl_analogWrite(SPINDLE_PWM_CHANNEL, pwm_value);
+#endif
 }
 
 // Called by spindle_set_state() and step segment generator. Keep routine small and efficient.
 uint32_t spindle_compute_pwm_value(float rpm)
 {
+#ifdef RS485_HUANYANG_MOTORCONTROL
+   return 0;
+#else
   uint32_t pwm_value;
   rpm *= (0.010*sys.spindle_speed_ovr); // Scale by spindle speed override value.
   // Calculate PWM register value based on rpm max/min settings and programmed rpm.
@@ -114,9 +137,29 @@ uint32_t spindle_compute_pwm_value(float rpm)
     pwm_value = floor((rpm-settings.rpm_min)*pwm_gradient) + SPINDLE_PWM_MIN_VALUE;
   }
   return(pwm_value);
-
+#endif
 }
-
+void setSpindleDirection(uint8_t state)
+{
+//    Serial.print("setSpindleDirection ");Serial.print(state);
+    if (state == SPINDLE_ENABLE_CW) {
+      if(SPINDLE_DIRECTION != SPINDLE_STATE_CW){spindleReversed = true;}
+      else{spindleReversed = false;}
+      SPINDLE_DIRECTION = SPINDLE_STATE_CW;
+//      Serial.println(" SPINDLE_ENABLE_CW ");
+    } 
+    else if (state == SPINDLE_ENABLE_CCW){
+      if(SPINDLE_DIRECTION != SPINDLE_STATE_CCW){spindleReversed = true;}
+      else{spindleReversed = false;}
+      SPINDLE_DIRECTION = SPINDLE_STATE_CCW;
+//      Serial.println(" SPINDLE_ENABLE_CCW ");
+    }
+    else{
+      SPINDLE_DIRECTION = SPINDLE_DISABLE;
+      spindleReversed = false;
+//      Serial.println(" SPINDLE_DISABLE ");
+    }
+}
 
 void spindle_set_state(uint8_t state, float rpm)
 {
@@ -125,7 +168,10 @@ void spindle_set_state(uint8_t state, float rpm)
     sys.spindle_speed = 0.0;    
     spindle_stop();  
   } else {
-  
+#ifdef RS485_HUANYANG_MOTORCONTROL
+   setSpindleDirection(state);
+#endif
+      
     // TODO ESP32 Enable and direction control
 		#ifdef SPINDLE_DIR_PIN		
       digitalWrite(SPINDLE_DIR_PIN, state == SPINDLE_ENABLE_CW);    
@@ -147,6 +193,26 @@ void spindle_sync(uint8_t state, float rpm)
 	if (sys.state == STATE_CHECK_MODE) { return; }
   protocol_buffer_synchronize(); // Empty planner buffer to ensure spindle is set when programmed.
   spindle_set_state(state,rpm);
+  #ifdef RS485_HUANYANG_MOTORCONTROL
+  if((rpm >0)&&(state != SPINDLE_DISABLE)){
+   if(motorSpeed((long)rpm)){
+     motorStart(SPINDLE_DIRECTION==SPINDLE_STATE_CW);
+    // Serial.print("SPINDLE_DIRECTION ");Serial.println(SPINDLE_DIRECTION);
+    // Serial.print("SPINDLE_ENABLE_CW ");Serial.println(SPINDLE_STATE_CW);
+    // Serial.print("SPINDLE_ENABLE_CCW ");Serial.println(SPINDLE_STATE_CCW);
+    // Serial.print("SPINDLE_DIRECTION ")Serial.print(SPINDLE_DIRECTION);
+      checkSpeed((long)rpm);  
+   }else{
+       motorStop();
+       system_set_exec_alarm(EXEC_MOTOR_CONTROL_FAIL);    
+   }
+    
+  }
+  else{
+      motorStop();
+   //motorSpeed(rpm);
+  }
+#endif
 }
 
 
@@ -159,7 +225,7 @@ void grbl_analogWrite(uint8_t chan, uint32_t duty)
 	}
 }
 
-void spindle_set_enable(bool enable)
+void spindle_set_enable(bool enable)    
 {
 	#ifdef SPINDLE_ENABLE_PIN	
 		#ifndef INVERT_SPINDLE_ENABLE_PIN
@@ -169,4 +235,3 @@ void spindle_set_enable(bool enable)
 		#endif
 	#endif
 }
-

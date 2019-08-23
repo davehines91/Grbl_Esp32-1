@@ -35,7 +35,66 @@
 	with AVR grbl
 	
 	*/
-		
+ #define DAVES_MAP_ESP32
+ #undef CPU_MAP_ESP32
+#ifdef DAVES_MAP_ESP32
+#define CPU_MAP_NAME "DAVES_MAP_ESP32"
+#define RS485_HUANYANG_MOTORCONTROL
+      #define X_STEP_PIN      GPIO_NUM_12
+      #define Y_STEP_PIN      GPIO_NUM_14
+      #define Z_STEP_PIN      GPIO_NUM_27
+      #define STEP_MASK       B111 // don't change
+      
+      #define X_STEP_BIT    0 
+      #define Y_STEP_BIT    1 
+      #define Z_STEP_BIT    2    
+      
+      #define X_DIRECTION_BIT   0
+      #define Y_DIRECTION_BIT   1  
+      #define Z_DIRECTION_BIT   2  
+      
+      #define X_DIRECTION_PIN   GPIO_NUM_26
+      #define Y_DIRECTION_PIN   GPIO_NUM_25  
+      #define Z_DIRECTION_PIN   GPIO_NUM_33 
+      
+      #define STEPPERS_DISABLE_PIN GPIO_NUM_13
+      
+   // #define COOLANT_FLOOD_PIN  GPIO_NUM_20  //16
+   // #define COOLANT_MIST_PIN      GPIO_NUM_24  //19
+
+    #define SPINDLE_DIR_PIN GPIO_NUM_5
+    #define SPINDLE_ENABLE_PIN GPIO_NUM_18
+      #define SPINDLE_PWM_PIN    GPIO_NUM_17
+    
+      #define SPINDLE_PWM_CHANNEL 0
+     #define SPINDLE_PWM_BASE_FREQ 5000 // Hz
+     #define SPINDLE_PWM_BIT_PRECISION 8
+     #define SPINDLE_PWM_OFF_VALUE     0
+     #define SPINDLE_PWM_MAX_VALUE     255  // TODO ESP32 Calc from resolution
+    #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)    
+      
+      #define X_LIMIT_BIT        0  
+      #define Y_LIMIT_BIT        1 
+      #define Z_LIMIT_BIT        2 
+      
+      #define X_LIMIT_PIN        GPIO_NUM_2  
+      #define Y_LIMIT_PIN        GPIO_NUM_4  
+      #define Z_LIMIT_PIN        GPIO_NUM_15 
+      
+      #define LIMIT_MASK         B111  // don't change
+      #define PROBE_PIN          GPIO_NUM_32  
+      #define PROBE_MASK        1 // don't change     
+      
+      
+      #define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
+      #define CONTROL_RESET_PIN         GPIO_NUM_34  // needs external pullup
+      #define CONTROL_FEED_HOLD_PIN     GPIO_NUM_36  // needs external pullup 
+      #define CONTROL_CYCLE_START_PIN   GPIO_NUM_39  // needs external pullup  
+
+       #define VFD_SERIAL_RECEIVE GPIO_NUM_17
+    #define VFD_SERIAL_TRANSMIT GPIO_NUM_18
+    #define VFD_SERIAL_DIRECTION_CONTROL GPIO_NUM_5
+#endif
 
 #ifdef CPU_MAP_ESP32
 	// This is the CPU Map for the ESP32 CNC Controller R2	
