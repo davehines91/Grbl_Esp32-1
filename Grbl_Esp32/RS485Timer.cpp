@@ -20,6 +20,7 @@
 
 #include "esp_system.h"
 #include "esp32-hal-timer.h"
+#include "config.h"
 #include "cpu_map.h"
 #include "RS485Timer.h"
 
@@ -66,5 +67,3 @@ void RS485Timer::restartTimer()
    timerRestart(timer_);
    timerRunning = true;
 }
-
-

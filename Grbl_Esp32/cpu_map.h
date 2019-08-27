@@ -35,11 +35,9 @@
 	with AVR grbl
 	
 	*/
- #define DAVES_MAP_ESP32
- #undef CPU_MAP_ESP32
 #ifdef DAVES_MAP_ESP32
-#define CPU_MAP_NAME "DAVES_MAP_ESP32"
-#define RS485_HUANYANG_MOTORCONTROL
+   #define CPU_MAP_NAME "DAVES_MAP_ESP32"
+   #define RS485_HUANYANG_MOTORCONTROL
       #define X_STEP_PIN      GPIO_NUM_12
       #define Y_STEP_PIN      GPIO_NUM_14
       #define Z_STEP_PIN      GPIO_NUM_27
