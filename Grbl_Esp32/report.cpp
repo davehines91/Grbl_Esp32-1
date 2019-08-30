@@ -601,7 +601,9 @@ void report_echo_line_received(char *line, uint8_t client)
 {		
 	grbl_sendf(client, "[echo: %s]\r\n", line);
 }
-
+extern int16_t globalSpeed;
+void sendPositionToDisplay(float cartX, float cartY, float cartZ,uint8_t coord, uint8_t tool,uint8_t stat,int16_t rpm);
+     
  // Prints real-time data. This function grabs a real-time snapshot of the stepper subprogram
  // and the actual location of the CNC machine. Users may change the following function to their
  // specific needs, but the desired real-time data report must be as short as possible. This is
@@ -619,6 +621,13 @@ void report_realtime_status(uint8_t client)
 	
   system_convert_array_steps_to_mpos(print_position,current_position);
 
+  ////////////////////////////
+  float tmp[3];
+  tmp[0] = print_position[0] - gc_state.coord_system[0];
+  tmp[1] = print_position[1] - gc_state.coord_system[1];
+  tmp[2] = print_position[2] - gc_state.coord_system[2];
+  ///////////////////////////////////
+  
   // Report current machine state and sub-states  
 	strcpy(status, "<");
   switch (sys.state) {
@@ -676,6 +685,7 @@ void report_realtime_status(uint8_t client)
   }
   report_util_axis_values(print_position, temp);
 	strcat(status, temp);
+   sendPositionToDisplay(tmp[0],tmp[1],tmp[2],gc_state.modal.coord_select,gc_state.tool,sys.state,globalSpeed);
 
   // Returns planner and serial read buffer states.
 #ifdef REPORT_FIELD_BUFFER_STATE

@@ -84,14 +84,17 @@
       #define PROBE_MASK        1 // don't change     
       
       
-      #define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
+   //   #define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
       #define CONTROL_RESET_PIN         GPIO_NUM_34  // needs external pullup
       #define CONTROL_FEED_HOLD_PIN     GPIO_NUM_36  // needs external pullup 
       #define CONTROL_CYCLE_START_PIN   GPIO_NUM_39  // needs external pullup  
 
-       #define VFD_SERIAL_RECEIVE GPIO_NUM_17
+    #define VFD_SERIAL_RECEIVE GPIO_NUM_17
     #define VFD_SERIAL_TRANSMIT GPIO_NUM_18
     #define VFD_SERIAL_DIRECTION_CONTROL GPIO_NUM_5
+//GPIO_NUM_16,GPIO_NUM_19);// blue, green  SDA_PIN, SCL_PIN
+    #define IC2_SDA_PIN GPIO_NUM_16
+    #define IC2_SCL_PIN GPIO_NUM_19
 #endif
 
 #ifdef CPU_MAP_ESP32
@@ -230,8 +233,8 @@
 		#define LIMIT_MASK      	B111
 		
 		#define PROBE_PIN       	GPIO_NUM_32  
-		
-		#define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
+		//CONTROL_SAFETY_DOOR_PIN
+		//#define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
 		#define CONTROL_RESET_PIN         GPIO_NUM_34  // needs external pullup
 		#define CONTROL_FEED_HOLD_PIN     GPIO_NUM_36  // needs external pullup 
 		#define CONTROL_CYCLE_START_PIN   GPIO_NUM_39  // needs external pullup    		

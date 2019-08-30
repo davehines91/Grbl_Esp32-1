@@ -21,6 +21,7 @@
 #include "grbl.h"
 
 static float pwm_gradient; // Precalulated value to speed up rpm to PWM conversions.
+#ifdef RS485_HUANYANG_MOTORCONTROL
 #include "VFD.h"
 #endif
 

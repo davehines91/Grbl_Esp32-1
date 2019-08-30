@@ -78,6 +78,7 @@ void protocol_main_loop()
   // ---------------------------------------------------------------------------------
 
   uint8_t line_flags = 0;
+  uint8_t isString = 0;
   uint8_t char_counter = 0;
   uint8_t c;
 	
@@ -110,7 +111,7 @@ void protocol_main_loop()
 		{
 			while((c = serial_read(client)) != SERIAL_NO_DATA) {
 				if ((c == '\n') || (c == '\r')) { // End of line reached
-
+               line[char_counter] = 0; 
 					protocol_execute_realtime(); // Runtime command check point.
 					if (sys.abort) { return; } // Bail to calling function upon system abort
 
@@ -149,8 +150,15 @@ void protocol_main_loop()
 					char_counter = 0;
 
 				} else {
-
-					if (line_flags) {
+                if(isString){ // WITHIN QUOTED STRING
+                    line[char_counter++] = c; // leave quote for later parsing
+                    if(c == '"'){
+                       isString = 0; // end of quoted string
+                       line[char_counter++] = '\0';
+                       Serial.println("Ending Quote");
+                    }
+               }
+					else if (line_flags) {
 						if (line_flags & LINE_FLAG_BRACKET) {  // in bracket mode all characters are accepted
 							line[char_counter++] = c;
 						}
@@ -160,7 +168,12 @@ void protocol_main_loop()
 							if (line_flags & LINE_FLAG_COMMENT_PARENTHESES) { line_flags &= ~(LINE_FLAG_COMMENT_PARENTHESES); }
 						}
 					} else {
-						if (c <= ' ') {
+						 if(c == '"'){ // START OF QUOTED STRING
+                     isString = 1;
+                     line[char_counter++] = ' '; // leave a space to separate from previous numeric value;
+                     line[char_counter++] = '"'; // leave the quote for later extraction
+                   } 
+                   else if (c <= ' ') {
 							// Throw away whitepace and control characters
 						} 
 						/*
@@ -834,4 +847,3 @@ static void protocol_exec_rt_suspend()
 
   }
 }
-

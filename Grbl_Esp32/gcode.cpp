@@ -23,7 +23,31 @@
 */
 
 #include "grbl.h"
-
+//////////////////////////////////
+#include "I2cTask.h"
+long messageCount[8] = {0,0,0,0,0,0,0,0};
+long lastMessageCount[8] = {0,0,0,0,0,0,0,0};
+char quotedComment[8][256];
+void updateMessageDisplay()
+{
+  bool updateRequired = false;
+  for(int ix=0;ix<8;ix++){
+    if(messageCount[ix] != lastMessageCount[ix] ){
+       updateRequired = true;
+    }
+  }
+  if(updateRequired){
+     protocol_buffer_synchronize();
+  }
+   for(int ix=0;ix<8;ix++){
+      if(messageCount[ix] != lastMessageCount[ix] ){
+        lastMessageCount[ix]=messageCount[ix];
+        sendTextToDisplay(quotedComment[ix],ix);
+        Serial.printf("---%d %s\n",ix,quotedComment[ix]);
+      }           
+   }
+}
+//////////////////////////////
 // NOTE: Max line number is defined by the g-code standard to be 99999. It seems to be an
 // arbitrary value, and some GUIs may require more. So we increased it based on a max safe
 // value when converting a float (7.2 digit precision)s to an integer.
@@ -111,8 +135,16 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 	uint8_t word_bit = 0; // Bit-value for assigning tracking variables
 	uint8_t char_counter;
 	char letter;
+   ////////////////
+   char localLetter;
+   uint8_t commentCounter = 0;
+   ///////////////
 	float value;
 	uint8_t int_value = 0;
+     ///////////////////
+     float localValue;
+     uint8_t localIntValue = 0;
+     //////////////////
 	uint16_t mantissa = 0;
 	if (gc_parser_flags & GC_PARSER_JOG_MOTION) {
 		char_counter = 3;    // Start parsing after `$J=`
@@ -335,7 +367,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 					break;
 				}
 				break;
-			case 6: // too change
+			case 6: // tool change
 				grbl_send(CLIENT_ALL, "[MSG:Tool Change]\r\n");
 				break;
 			case 7:
@@ -359,7 +391,33 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 				default:
 					FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
 				}
-				break;
+           	break;
+        case 117:{
+            Serial.println("Hit M117");
+              word_bit = MODAL_GROUP_M7;
+             // Serial.println(*((char *)&line[char_counter]));
+              localLetter = line[char_counter];
+              char_counter ++;
+              if (!read_float(line, &char_counter, &localValue)) { FAIL(STATUS_BAD_NUMBER_FORMAT); } // [Expected word value]
+              localIntValue = trunc(localValue);
+              Serial.println(localIntValue);
+              Serial.println(line);
+             if(line[char_counter]== ' '){ // expect space"
+               char_counter++ ; 
+               if(line[char_counter]== '"'){
+                char_counter++;
+                while((line[char_counter] != '"') &&(commentCounter<128)){ //intended to be a line overflow check
+                  quotedComment[localIntValue][commentCounter++] = line[char_counter++];
+                }
+                char_counter++; // eat the "
+                quotedComment[localIntValue][commentCounter++] = 0; // null terminate
+                messageCount[localIntValue]++;
+              //  sendTextToDisplay(quotedComment,localIntValue);
+                
+               }
+               Serial.println(quotedComment[localIntValue]);
+            }}
+            break;
 			default:
 				FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
 			}
@@ -450,6 +508,22 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 				}
 				grbl_sendf(CLIENT_ALL, "[MSG:Tool No: %d]\r\n", int_value);
 				gc_block.values.t = int_value; 
+                  
+             if(line[char_counter]== ' '){ // expect space"
+               char_counter++ ; 
+               if(line[char_counter]== '"'){
+                char_counter++;
+                while((line[char_counter] != '"') &&(commentCounter<128)){ //intended to be a line overflow check
+                  quotedComment[7][commentCounter++] = line[char_counter++];
+                }
+                char_counter++; // eat the "
+                quotedComment[7][commentCounter++] = 0; // null terminate
+                messageCount[7]++;
+                sendTextToDisplay(quotedComment[7]);
+                Serial.println(quotedComment[7]);
+               }
+             }
+             
 				break;
 			case 'X':
 				word_bit = WORD_X;
@@ -594,10 +668,11 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 		gc_block.values.s = gc_state.spindle_speed;
 	}
 	// bit_false(value_words,bit(WORD_S)); // NOTE: Single-meaning value word. Set at end of error-checking.
-
+   updateMessageDisplay();
 	// [5. Select tool ]: NOT SUPPORTED. Only tracks value. T is negative (done.) Not an integer. Greater than max tool value.
+ 
 	// bit_false(value_words,bit(WORD_T)); // NOTE: Single-meaning value word. Set at end of error-checking.
-
+   
 	// [6. Change tool ]: N/A
 	// [7. Spindle control ]: N/A
 	// [8. Coolant control ]: N/A
@@ -1181,7 +1256,9 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 	} // else { pl_data->spindle_speed = 0.0; } // Initialized as zero already.
 
 	// [5. Select tool ]: NOT SUPPORTED. Only tracks tool value.
-	gc_state.tool = gc_block.values.t;
+	 if(gc_state.tool != gc_block.values.t){
+      gc_state.tool = gc_block.values.t;
+  }
 
 	// [6. Change tool ]: NOT SUPPORTED
 
@@ -1377,6 +1454,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 
 	return(STATUS_OK);
 }
+
 
 
 /*
