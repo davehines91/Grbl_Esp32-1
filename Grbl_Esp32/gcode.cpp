@@ -47,6 +47,24 @@ void updateMessageDisplay()
       }           
    }
 }
+bool extractQuotedText(const char * line, uint8_t &char_counter, uint8_t &commentCounter, uint8_t localIntValue)
+{
+   if (line[char_counter] == ' ') { // expect space"
+      char_counter++;
+      if (line[char_counter] == '"') {
+         char_counter++;
+         while ((line[char_counter] != '"') && (commentCounter < 128)) { //intended to be a line overflow check
+            quotedComment[localIntValue][commentCounter++] = line[char_counter++];
+         }
+         char_counter++; // eat the "
+         quotedComment[localIntValue][commentCounter++] = 0; // null terminate
+         messageCount[localIntValue]++;
+      }
+      //Serial.println(quotedComment[localIntValue]);
+      return true;
+   }
+   return false;
+}
 //////////////////////////////
 // NOTE: Max line number is defined by the g-code standard to be 99999. It seems to be an
 // arbitrary value, and some GUIs may require more. So we increased it based on a max safe
@@ -402,7 +420,8 @@ uint8_t gc_execute_line(char *line, uint8_t client)
               localIntValue = trunc(localValue);
               Serial.println(localIntValue);
               Serial.println(line);
-             if(line[char_counter]== ' '){ // expect space"
+              extractQuotedText(line, char_counter, commentCounter, localIntValue);
+          /*   if(line[char_counter]== ' '){ // expect space"
                char_counter++ ; 
                if(line[char_counter]== '"'){
                 char_counter++;
@@ -413,10 +432,10 @@ uint8_t gc_execute_line(char *line, uint8_t client)
                 quotedComment[localIntValue][commentCounter++] = 0; // null terminate
                 messageCount[localIntValue]++;
               //  sendTextToDisplay(quotedComment,localIntValue);
-                
-               }
+               
+               } */
                Serial.println(quotedComment[localIntValue]);
-            }}
+            }
             break;
 			default:
 				FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
@@ -508,8 +527,11 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 				}
 				grbl_sendf(CLIENT_ALL, "[MSG:Tool No: %d]\r\n", int_value);
 				gc_block.values.t = int_value; 
-                  
-             if(line[char_counter]== ' '){ // expect space"
+
+             if(extractQuotedText(line, char_counter, commentCounter, 7)){
+                  sendTextToDisplay(quotedComment[7]);
+             }
+            /* if(line[char_counter]== ' '){ // expect space"
                char_counter++ ; 
                if(line[char_counter]== '"'){
                 char_counter++;
@@ -522,7 +544,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
                 sendTextToDisplay(quotedComment[7]);
                 Serial.println(quotedComment[7]);
                }
-             }
+             }*/
              
 				break;
 			case 'X':
