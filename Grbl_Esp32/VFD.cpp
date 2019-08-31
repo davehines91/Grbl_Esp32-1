@@ -25,6 +25,13 @@ RS485Timer *transmitTimer = nullptr;
 #include "serial1.h"
 #include "grbl.h"
 
+int16_t globalSpeed = 0;
+static uint32_t maxFrequency = 20000;
+#define FWD 1
+#define REV 2
+bool currentDirection = FWD;
+bool reversing = false;
+
 #define milliSeconds millis
 
 static unsigned char  vfdstart[] = {0x01, 0x03, 0x01, 0x01, 0x31, 0x88};
@@ -105,7 +112,8 @@ bool timeoutWithAlarm(unsigned long startT, unsigned long timeOut)
   
   return true;
 }
-bool responce(int repLen)
+// HY
+bool responceHY(int repLen)
 {
   bool retVal = false;
   static unsigned char response[32];
@@ -133,12 +141,42 @@ bool responce(int repLen)
   }
   return retVal;
 }
-int16_t globalSpeed = 0;
-static unsigned short maxFrequency = 20000;
+
+
+bool motorHYSpeed(unsigned long needForSpeed)
+{
+	Serial.print("motorHYSpeed "); Serial.println(needForSpeed);
+	unsigned short reqFrequ = (needForSpeed * 100) / 60;
+	if (reqFrequ > maxFrequency) {
+		debugMessage("Requested Speed is greater than Max Speed");
+		return false;
+	}
+	Serial.print("reqFreq "); Serial.println(reqFrequ);
+	unsigned char query[16];
+	query[0] = HOST1;
+	query[1] = WRITE_FREQ_DATA;
+	query[2] = 0x02;
+	query[3] = HB(reqFrequ);
+	query[4] = LB(reqFrequ);
+	Serial.print(" HB(reqFrequ); "); Serial.println(query[3], HEX);
+	Serial.print(" LB(reqFrequ); "); Serial.println(query[4], HEX);
+	unsigned short crc1 = CRC16_2(query, 5);
+	query[5] = crc1 & 0x00ff;
+	query[6] = crc1 >> 8;
+	serial1_send(query, 7);
+	int repLen = 7;
+	responceHY(repLen);
+	return true;
+}
+
 bool motorSpeed(unsigned long needForSpeed)
 {
+#ifdef HUANYANG_GT
   return motorGTSpeed(needForSpeed);
-  Serial.print("motorSpeed ");Serial.println(needForSpeed);
+#else
+  return motorHYSpeed(needForSpeed);
+#endif
+ /* Serial.print("motorSpeed ");Serial.println(needForSpeed);
   unsigned short reqFrequ = (needForSpeed*100)/60;
   if(reqFrequ  > maxFrequency){
     debugMessage("Requested Speed is greater than Max Speed");
@@ -158,9 +196,10 @@ bool motorSpeed(unsigned long needForSpeed)
   query[6] = crc1>>8; 
   serial1_send(query,7);
   int repLen = 7;
-  responce(repLen);
-  return true;
+  responceHY(repLen);
+  return true;*/
 }      
+
 
 void motorControlInit()
 {
@@ -173,65 +212,88 @@ void motorControlInit()
   delay(500);
   digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, LOW); // Read
   maxFrequency =  400000 ;//getParameter(0x5);
+  for(int ix=0;ix<=0x16;ix++){ 
+    uint16_t maxFrequencyGT = getGTParameter(0x3000+ix);
+     Serial.print("maxFrequencyGT ");Serial.print(maxFrequencyGT);Serial.print(" ");Serial.println(maxFrequencyGT,HEX);
+  }
   Serial.print("maxFrequency ");Serial.println(maxFrequency);
 }
-#define FWD 1
-#define REV 2
-bool currentDirection = FWD;
-bool reversing = false;
-bool motorStart(bool forward)
-{
-  motorGTStart(forward);
-  return true;
-  Serial.println("motorStart");
-  int countDown = 2;
- // unsigned char  vfdReverseStart[] = {0x01, 0x03, 0x01, 0x11, 0x00, 0x00};
- // unsigned short crc1 = CRC16_2(vfdReverseStart,4);  
- // vfdReverseStart[4] = crc1&0x00ff; 
- // vfdReverseStart[5] = crc1>>8;
- // for(int ix=0;ix<6;ix++){
- //   Serial.println(vfdReverseStart[ix],HEX);
- // }
-  
-  do{
-    if(forward){
-      serial1_send(vfdstart,6);
-      if(currentDirection != FWD){
-        Serial.println("Changing Direction");
-        reversing = true;
-      }
 
-      currentDirection = FWD;
-      Serial.println("FWD");
-    }
-    else{
-      serial1_send(vfdReverseStart,6);
-      if(currentDirection != REV){
-        Serial.println("Changing Direction");
-        reversing = true;
-      }
-      currentDirection = REV;
-      Serial.println("REV");
-    }
-    debugMessage();
-    countDown--;
-  }while(!responce(6)&& countDown);
+
+bool motorHYStart(bool forward)
+{
+	Serial.println("motorStart");
+	int countDown = 2;
+	// unsigned char  vfdReverseStart[] = {0x01, 0x03, 0x01, 0x11, 0x00, 0x00};
+	// unsigned short crc1 = CRC16_2(vfdReverseStart,4);  
+	// vfdReverseStart[4] = crc1&0x00ff; 
+	// vfdReverseStart[5] = crc1>>8;
+	// for(int ix=0;ix<6;ix++){
+	//   Serial.println(vfdReverseStart[ix],HEX);
+	// }
+
+	do {
+		if (forward) {
+			serial1_send(vfdstart, 6);
+			if (currentDirection != FWD) {
+				Serial.println("Changing Direction");
+				reversing = true;
+			}
+
+			currentDirection = FWD;
+			Serial.println("FWD");
+		}
+		else {
+			serial1_send(vfdReverseStart, 6);
+			if (currentDirection != REV) {
+				Serial.println("Changing Direction");
+				reversing = true;
+			}
+			currentDirection = REV;
+			Serial.println("REV");
+		}
+		debugMessage();
+		countDown--;
+	} while (!responceHY(6) && countDown);
+	return true;
 }
 
-bool motorStop()
+bool motorStart(bool forward)
 {
-  motorGTStop();
-  return true;
-  
+#ifdef HUANYANG_GT
+	return motorGTStart(forward);
+#else
+	return motorHYStart(forward);
+#endif
+ 
+}
+
+
+bool motorHYStop()
+{
+
   Serial.println("motorStop");
   int countDown = 5;
   do{
     serial1_send(vfdstop,6);
     debugMessage();
     countDown--;
-  } while(  !responce(6) && (countDown));
+  } while(  !responceHY(6) && (countDown));
+  return true;
 }
-bool getDirection()
+
+bool motorStop()
+{
+#ifdef HUANYANG_GT
+	return motorGTStop();
+#else
+	return motorHYStop();
+#endif
+	
+
+}
+
+bool getDirectionHY()
 {
   char spead[2];
   long currentSpeed = 0;
@@ -266,9 +328,10 @@ bool getDirection()
 
   
 }
-long getSpeed()
+
+long getHYSpeed()
 {
-  return getGTSpeed();
+  
   char spead[2];
   long currentSpeed = 0;
   static unsigned char query[8];
@@ -301,6 +364,16 @@ long getSpeed()
   globalSpeed = (int16_t)currentSpeed;
   return currentSpeed ;
 }
+
+long getSpeed()
+{
+#ifdef HUANYANG_GT
+	return getGTSpeed();
+#else
+	return getHYSpeed();
+#endif
+}
+
 long getTimeOut(long requiredSpeed)
 {
   return 50000;
@@ -333,7 +406,7 @@ long checkSpeed(unsigned long requiredSpeed)
   do{
     if(((now = milliSeconds())-lastCheck) >2000){
       lastCheck = now;    
-      currentSpeed = getGTSpeed();
+      currentSpeed = getSpeed();
       debugMessageNoLn(currentSpeed);debugMessageNoLn(" ");debugMessage(requiredSpeed);
     }
   }
@@ -387,11 +460,11 @@ unsigned short getParameter(uint8_t parameter)
 
 
 /* Modbus function codes */
-#define READ_REGISTER    0x03
-#define WRITE_SINGLE_REGISTER     0x06
+#define GT_READ_REGISTER    0x03
+#define GT_WRITE_SINGLE_REGISTER     0x06
 #define BROADCAST_ADDRESS    0
 
-bool gtresponce(int repLen)
+bool responceGT(int repLen)
 {
   bool retVal = false;
   unsigned char response[32];
@@ -421,12 +494,14 @@ bool gtresponce(int repLen)
  //   Serial.print("CRC2 = ");
  //   Serial.println(crcX2); 
     debugMessage(" ");
-    if(errorReported){
-      debugMessageNoLn("gtresponce reported Error ");debugMessageH(response[2]);
-    }
-     if(didntTimeOut){
+    if(didntTimeOut){
          retVal = true;
      }
+    if(errorReported){
+      debugMessageNoLn("responceGT reported Error X ");debugMessageH(response[2]);  
+      retVal = false;
+    }
+     
    return retVal;
  
 }
@@ -438,7 +513,7 @@ bool  motorGTSpeed(unsigned long needForSpeed)
   unsigned char query[16];
   uint16_t addr = 0x2000;
   query[0] = HOST1;
-  query[1] = WRITE_SINGLE_REGISTER;
+  query[1] = GT_WRITE_SINGLE_REGISTER;
   query[2] = HB(addr);
   query[3] = LB(addr);
   query[4] = HB(reqFrequ);
@@ -448,12 +523,17 @@ bool  motorGTSpeed(unsigned long needForSpeed)
   query[7] = crc1>>8; 
   serial1_send(query,8);
   int repLen = 8;
-  gtresponce(repLen);
+  if(!responceGT(repLen)){
+      debugMessage("motorGTSpeed Error");
+      return false;
+  }
+  debugMessage("motorGTSpeed Exit Ok");
   return true;
 }      
 
 bool motorGTStart(bool forward)
 {
+   debugMessage("motorGTStart ");
   uint16_t addr = 0x1000;
   uint16_t val = forward ? 1 : 2;
   uint16_t repLen = 8;
@@ -475,7 +555,7 @@ bool motorGTStart(bool forward)
   do{
     countDown --;
     message[0] = HOST1;
-    message[1] = WRITE_SINGLE_REGISTER;
+    message[1] = GT_WRITE_SINGLE_REGISTER;
     message[2] = addr >> 8;
     message[3] = addr & 0x00ff;;
     message[4] = val >> 8;
@@ -486,8 +566,8 @@ bool motorGTStart(bool forward)
     delay(30);
     serial1_send(message,8);
 
- }while(!gtresponce(8)&& countDown);
-
+ }while(!responceGT(8)&& countDown);
+debugMessage("motorGTStart ");
   return true;
 }
 
@@ -500,7 +580,7 @@ bool motorGTStop()
   int repLen = 8;
   unsigned char message[32];
   message[0] = HOST1;
-  message[1] = WRITE_SINGLE_REGISTER;
+  message[1] = GT_WRITE_SINGLE_REGISTER;
   message[2] = addr >> 8;
   message[3] = addr & 0x00ff;
   message[4] = val >> 8;
@@ -510,13 +590,14 @@ bool motorGTStop()
   message[7] = crc1>>8;
   delay(30);
   serial1_send(message,8);
-  gtresponce(repLen);
+  responceGT(repLen);
   globalSpeed = 0;
   return true;
 }
 long getGTSpeed()
 {
-  uint16_t addr = 0x3005;
+   #define GT_SPEEDPARAM 0x3005
+  uint16_t addr = GT_SPEEDPARAM;
   int16_t currentSpeed =0;
   currentSpeed = getGTParameter(addr);
   globalSpeed = (int16_t)currentSpeed;
@@ -533,7 +614,7 @@ uint16_t getGTParameter(uint16_t parameter)
 
   unsigned char message[32];
   message[0] = HOST1;
-  message[1] = READ_REGISTER;
+  message[1] = GT_READ_REGISTER;
   message[2] = addr >> 8;
   message[3] = addr & 0x00ff;
   message[4] = val >> 8;

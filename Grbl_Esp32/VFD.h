@@ -51,3 +51,6 @@ long getGTSpeed();
 
 uint16_t getGTParameter(uint16_t parameter);
 extern int16_t globalSpeed;
+
+#define HUANYANG_GT
+//#define HUANYANG_HY
