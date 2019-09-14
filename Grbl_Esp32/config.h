@@ -37,9 +37,10 @@ Some features should not be changed. See notes below.
 
 #ifndef config_h
 #define config_h
-#include "grbl.h" // For Arduino IDE compatibility.
+#include <Arduino.h>
 
 //#define ESP_DEBUG
+#define N_AXIS 3 // Number of axes defined (valid range: 3 to 6) 
 
 // Define CPU pin map and default settings.
 // NOTE: OEMs can avoid the need to maintain/update the defaults.h and cpu_map.h files and use only
@@ -280,8 +281,10 @@ Some features should not be changed. See notes below.
 // This allows control pins to be ignored.
 // Since these are typically used on the pins that don't have pullups, they will float and cause
 // problems if not externally pulled up. Ignoring will always return not activated when read.
-#define IGNORE_CONTROL_PINS
+//#define IGNORE_CONTROL_PINS
 
+//#define ENABLE_CONTROL_SW_DEBOUNCE // Default disabled. Uncomment to enable.
+#define CONTROL_SW_DEBOUNCE_PERIOD 32 // in milliseconds default 32 microseconds 
 
 
 // Inverts select limit pin states based on the following mask. This effects all limit pin functions,
