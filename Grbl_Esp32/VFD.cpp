@@ -200,23 +200,29 @@ bool motorSpeed(unsigned long needForSpeed)
   return true;*/
 }      
 
-
+static bool motorControlInitialised = false;
 void motorControlInit()
 {
-  serial1_init();
-  transmitTimer = new RS485Timer(4000);// 4mS
-  pinMode(VFD_SERIAL_DIRECTION_CONTROL, OUTPUT);
-  digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, LOW); // Read
-  delay(500);
-  digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, HIGH); // Write
-  delay(500);
-  digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, LOW); // Read
-  maxFrequency =  400000 ;//getParameter(0x5);
-  for(int ix=0;ix<=0x16;ix++){ 
-    uint16_t maxFrequencyGT = getGTParameter(0x3000+ix);
-     Serial.print("maxFrequencyGT ");Serial.print(maxFrequencyGT);Serial.print(" ");Serial.println(maxFrequencyGT,HEX);
+   if(!motorControlInitialised){
+     serial1_init();
+     transmitTimer = new RS485Timer(4000);// 4mS
+     pinMode(VFD_SERIAL_DIRECTION_CONTROL, OUTPUT);
+     digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, LOW); // Read
+     delay(500);
+     digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, HIGH); // Write
+     delay(500);
+     digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, LOW); // Read
+     maxFrequency =  400000 ;//getParameter(0x5);
+  //   for(int ix=0;ix<=0x16;ix++){ 
+  ///     uint16_t maxFrequencyGT = getGTParameter(0x3000+ix);
+  //      Serial.print("maxFrequencyGT ");Serial.print(maxFrequencyGT);Serial.print(" ");Serial.println(maxFrequencyGT,HEX);
+   //  }
+   //  Serial.print("maxFrequency ");Serial.println(maxFrequency);
+     motorControlInitialised = true;
   }
-  Serial.print("maxFrequency ");Serial.println(maxFrequency);
+  else{
+   //Serial.println("motorControlInit Called again");
+  }
 }
 
 

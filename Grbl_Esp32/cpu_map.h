@@ -95,6 +95,8 @@
 //GPIO_NUM_16,GPIO_NUM_19);// blue, green  SDA_PIN, SCL_PIN
     #define IC2_SDA_PIN GPIO_NUM_16
     #define IC2_SCL_PIN GPIO_NUM_19
+
+   // pinCount = 23
 #endif
 
 #ifdef CPU_MAP_ESP32

@@ -398,7 +398,10 @@ void mc_reset()
     system_set_exec_state_flag(EXEC_RESET);
 
     // Kill spindle and coolant.
+    #ifndef RS485_HUANYANG_MOTORCONTROL
+    // causes watchdog timeout with the motor stop comand :(
     spindle_stop();
+    #endif
     coolant_stop();		
 		
 		#ifdef ENABLE_SD_CARD
@@ -428,5 +431,3 @@ void mc_reset()
 		
   }
 }
-
-

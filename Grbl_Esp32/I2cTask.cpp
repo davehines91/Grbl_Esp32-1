@@ -50,6 +50,7 @@ void i2cCheckTask(void *pvParameters)
   //create a queue to handle gpio event from isr
   softwareInterruptQueue = xQueueCreate(100,sizeof(LcdMessage));
    long lastUpdate=0;
+   long lastSlaveUpdate=0;
    long now = 0;
    bool splashVisible = false;
   while(true) // run continuously
@@ -69,6 +70,15 @@ void i2cCheckTask(void *pvParameters)
          lastUpdate = now;
       //   splashScreen();
          splashVisible = true; 
+    }
+    if((now - lastSlaveUpdate) >500){
+      Wire.requestFrom(TEENSYWIRE, 2);   // request 6 bytes from slave device #8
+      while(Wire.available()) { // slave may send less than requested
+         uint8_t c = Wire.read();   // receive a byte as character
+         Serial.print('-');Serial.print(c,HEX);Serial.print(" ");        // print the character
+      }
+      lastSlaveUpdate = now;
+      Serial.println();
     }
     if(splashVisible && ((now-lastUpdate) > 50000)){
     //  void  clearScreen();
@@ -103,7 +113,6 @@ void sendTextToDisplay(char *msg,uint8_t lineNumber)
 extern int16_t globalSpeed;
 void sendPositionToDisplay(float cartX, float cartY, float cartZ,uint8_t coord, uint8_t tool,uint8_t stat,int16_t rpm)
 {
-  // Serial.printf("%f %f %f %u %u %u %u\n",cartP[0],cartP[1],cartP[2],coord, tool,stat,rpm);
   LcdMessage lmsg;
   lmsg.type= 1;
   lmsg.lineNumber = 0;

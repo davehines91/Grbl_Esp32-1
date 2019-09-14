@@ -418,23 +418,10 @@ uint8_t gc_execute_line(char *line, uint8_t client)
               char_counter ++;
               if (!read_float(line, &char_counter, &localValue)) { FAIL(STATUS_BAD_NUMBER_FORMAT); } // [Expected word value]
               localIntValue = trunc(localValue);
-              Serial.println(localIntValue);
-              Serial.println(line);
+              //Serial.println(localIntValue);
+              //Serial.println(line);
               extractQuotedText(line, char_counter, commentCounter, localIntValue);
-          /*   if(line[char_counter]== ' '){ // expect space"
-               char_counter++ ; 
-               if(line[char_counter]== '"'){
-                char_counter++;
-                while((line[char_counter] != '"') &&(commentCounter<128)){ //intended to be a line overflow check
-                  quotedComment[localIntValue][commentCounter++] = line[char_counter++];
-                }
-                char_counter++; // eat the "
-                quotedComment[localIntValue][commentCounter++] = 0; // null terminate
-                messageCount[localIntValue]++;
-              //  sendTextToDisplay(quotedComment,localIntValue);
-               
-               } */
-               Serial.println(quotedComment[localIntValue]);
+              //Serial.println(quotedComment[localIntValue]);
             }
             break;
 			default:
@@ -527,25 +514,8 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 				}
 				grbl_sendf(CLIENT_ALL, "[MSG:Tool No: %d]\r\n", int_value);
 				gc_block.values.t = int_value; 
-
-             if(extractQuotedText(line, char_counter, commentCounter, 7)){
-                  sendTextToDisplay(quotedComment[7]);
-             }
-            /* if(line[char_counter]== ' '){ // expect space"
-               char_counter++ ; 
-               if(line[char_counter]== '"'){
-                char_counter++;
-                while((line[char_counter] != '"') &&(commentCounter<128)){ //intended to be a line overflow check
-                  quotedComment[7][commentCounter++] = line[char_counter++];
-                }
-                char_counter++; // eat the "
-                quotedComment[7][commentCounter++] = 0; // null terminate
-                messageCount[7]++;
-                sendTextToDisplay(quotedComment[7]);
-                Serial.println(quotedComment[7]);
-               }
-             }*/
-             
+           // Serial.printf("Setting T %d\n",gc_block.values.t);
+            extractQuotedText(line, char_counter, commentCounter, 7);           
 				break;
 			case 'X':
 				word_bit = WORD_X;
@@ -690,15 +660,15 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 		gc_block.values.s = gc_state.spindle_speed;
 	}
 	// bit_false(value_words,bit(WORD_S)); // NOTE: Single-meaning value word. Set at end of error-checking.
-   updateMessageDisplay();
 	// [5. Select tool ]: NOT SUPPORTED. Only tracks value. T is negative (done.) Not an integer. Greater than max tool value.
- 
-	// bit_false(value_words,bit(WORD_T)); // NOTE: Single-meaning value word. Set at end of error-checking.
-   
+    if (bit_istrue(value_words,bit(WORD_T))) {
+      // Serial.printf("Setting Tool %d %d\n",gc_state.tool,gc_block.values.t);
+      gc_state.tool = gc_block.values.t;
+    }
+    updateMessageDisplay();
 	// [6. Change tool ]: N/A
 	// [7. Spindle control ]: N/A
 	// [8. Coolant control ]: N/A
-	// [9. Enable/disable feed rate or spindle overrides ]: NOT SUPPORTED.
 
 	// [10. Dwell ]: P value missing. P is negative (done.) NOTE: See below.
 	if (gc_block.non_modal_command == NON_MODAL_DWELL) {
@@ -1278,9 +1248,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 	} // else { pl_data->spindle_speed = 0.0; } // Initialized as zero already.
 
 	// [5. Select tool ]: NOT SUPPORTED. Only tracks tool value.
-	 if(gc_state.tool != gc_block.values.t){
-      gc_state.tool = gc_block.values.t;
-  }
+
 
 	// [6. Change tool ]: NOT SUPPORTED
 
