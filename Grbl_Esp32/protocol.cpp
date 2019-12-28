@@ -33,7 +33,13 @@
 #define LINE_FLAG_COMMENT_SEMICOLON bit(2)
 #define LINE_FLAG_BRACKET bit(3) // square bracket for WebUI commands
 
-
+#include <functional>
+void daves_message_function(const char *comment)
+{
+   Serial.println(comment);
+}
+extern std::function<void(const char *comment)> user_message_function ;
+static char comment[LINE_BUFFER_SIZE];
 static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
@@ -80,6 +86,7 @@ void protocol_main_loop()
   uint8_t line_flags = 0;
   uint8_t isString = 0;
   uint8_t char_counter = 0;
+  uint8_t comment_char_counter = 0;
   uint8_t c;
 	
   for (;;) {
@@ -112,6 +119,7 @@ void protocol_main_loop()
 			while((c = serial_read(client)) != SERIAL_NO_DATA) {
 				if ((c == '\n') || (c == '\r')) { // End of line reached
                line[char_counter] = 0; 
+              // Serial.printf("[MSG:\"%s\"]\n",line);
 					protocol_execute_realtime(); // Runtime command check point.
 					if (sys.abort) { return; } // Bail to calling function upon system abort
 
@@ -148,6 +156,7 @@ void protocol_main_loop()
 					// Reset tracking data for next line.
 					line_flags = 0;
 					char_counter = 0;
+               comment_char_counter = 0;
 
 				} else {
                 if(isString){ // WITHIN QUOTED STRING
@@ -155,7 +164,7 @@ void protocol_main_loop()
                     if(c == '"'){
                        isString = 0; // end of quoted string
                        line[char_counter++] = '\0';
-                       Serial.println("Ending Quote");
+                      // Serial.println("Ending Quote");
                     }
                }
 					else if (line_flags) {
@@ -164,9 +173,20 @@ void protocol_main_loop()
 						}
 						// Throw away all (except EOL) comment characters and overflow characters.
 						if (c == ')') {
+                   //   Serial.println("~LINE_FLAG_COMMENT_PARENTHESES");
 							// End of '()' comment. Resume line allowed.
-							if (line_flags & LINE_FLAG_COMMENT_PARENTHESES) { line_flags &= ~(LINE_FLAG_COMMENT_PARENTHESES); }
+							if (line_flags & LINE_FLAG_COMMENT_PARENTHESES) { 
+							   line_flags &= ~(LINE_FLAG_COMMENT_PARENTHESES); 
+                        comment[comment_char_counter++] =  '\0';
+							   if (user_message_function) {
+                              user_message_function(comment);
+                        }
+							}
 						}
+                  if (line_flags & LINE_FLAG_COMMENT_PARENTHESES) {
+               //      Serial.println(comment_char_counter);
+                     comment[comment_char_counter++] = c;
+                  }
 					} else {
 						 if(c == '"'){ // START OF QUOTED STRING
                      isString = 1;
@@ -187,6 +207,7 @@ void protocol_main_loop()
 							// NOTE: This doesn't follow the NIST definition exactly, but is good enough for now.
 							// In the future, we could simply remove the items within the comments, but retain the
 							// comment control characters, so that the g-code parser can error-check it.
+                   // Serial.println("LINE_FLAG_COMMENT_PARENTHESES");
 							line_flags |= LINE_FLAG_COMMENT_PARENTHESES;
 						} else if (c == ';') {
 							// NOTE: ';' comment to EOL is a LinuxCNC definition. Not NIST.

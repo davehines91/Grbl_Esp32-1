@@ -36,7 +36,19 @@ void cncTDisplay(const LcdMessage &message)
    Wire.write((const uint8_t*)message.text,20);
    auto error = Wire.endTransmission();
    if(error != 0){
+   /*   vTaskDelay(1 / portTICK_RATE_MS);
+     Wire.beginTransmission(TEENSYWIRE);  
+     Wire.write(message.type);
+      Wire.write(message.lineNumber);
+      Wire.write(message.state);
+      Wire.write((const uint8_t*)&message.rpm,2);
+      Wire.write((const uint8_t*)message.text,20);
+      
+      auto error2 = Wire.endTransmission();
+      if(error2 != 0){
+      Serial.printf("cncTDisplay %d\n",Wire.getClock());*/
       Serial.printf("cncTDisplay End %d\n",error);
+     // }
    }
   //Serial.println("cncTDisplay End");
 }
@@ -45,7 +57,7 @@ void i2cCheckTask(void *pvParameters)
 {
  // setupOled();
     Wire.begin(IC2_SDA_PIN,IC2_SCL_PIN);//GPIO_NUM_16,GPIO_NUM_19);// blue, green  SDA_PIN, SCL_PIN
-    Wire.setClock(100000);
+    Wire.setClock(800000);
  
   //create a queue to handle gpio event from isr
   softwareInterruptQueue = xQueueCreate(100,sizeof(LcdMessage));
@@ -75,10 +87,10 @@ void i2cCheckTask(void *pvParameters)
       Wire.requestFrom(TEENSYWIRE, 2);   // request 6 bytes from slave device #8
       while(Wire.available()) { // slave may send less than requested
          uint8_t c = Wire.read();   // receive a byte as character
-         Serial.print('-');Serial.print(c,HEX);Serial.print(" ");        // print the character
+     //    Serial.print('-');Serial.print(c,HEX);Serial.print(" ");        // print the character
       }
       lastSlaveUpdate = now;
-      Serial.println();
+   //   Serial.println();
     }
     if(splashVisible && ((now-lastUpdate) > 50000)){
     //  void  clearScreen();

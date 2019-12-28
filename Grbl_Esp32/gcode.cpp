@@ -25,14 +25,90 @@
 #include "grbl.h"
 //////////////////////////////////
 #include "I2cTask.h"
+#include <functional>
 long messageCount[8] = {0,0,0,0,0,0,0,0};
 long lastMessageCount[8] = {0,0,0,0,0,0,0,0};
+bool sendMessage[8] = {false,false,false,false,false,false,false,false};
 char quotedComment[8][256];
+
+void updateMessageDisplay();
+std::vector<std::string> splitString(const std::string &sourceStr, const std::string &delimiter, bool ignoreEmpty)
+{
+   std::vector<std::string> resultVector;
+   size_t idxA = 0;
+   size_t idxB = sourceStr.find(delimiter);
+   std::string tempStr;
+   bool done = false;
+   while (!done)     {
+      if (idxB != std::string::npos)         {
+         tempStr = sourceStr.substr(idxA, idxB - idxA);
+         idxA = idxB + delimiter.length();
+         idxB = sourceStr.find(delimiter, idxA);
+      }
+      else{
+         tempStr = sourceStr.substr(idxA);
+         done = true;
+      }
+      if (!(ignoreEmpty && tempStr.empty())) {
+         resultVector.push_back(tempStr);
+      }
+   }
+   return resultVector;
+}
+
+void daves_message_function2(const char *comment)
+{
+  std::string commentS = comment;
+  auto oList = splitString(commentS,",",false);
+  
+  if(oList.size() >2 ){
+      int localIntValue = atoi(oList[1].c_str());  
+      int  commentCounter = 0;
+      for(auto i : oList[2]){
+         quotedComment[localIntValue][commentCounter++] = i;
+      }
+      if(oList.size() ==3 ){
+         sendMessage[localIntValue] = true;
+      }
+      else{
+         Serial.println(oList[3].c_str());
+         if(oList[3] == "1"){      
+            sendMessage[localIntValue] = true;
+         }
+         else{
+            sendMessage[localIntValue] = false;
+         }
+             
+      }
+      
+      quotedComment[localIntValue][commentCounter] = 0;
+      //Serial.println(quotedComment[localIntValue]);
+  }
+  else if(oList.size() >1 ){
+      if(oList[0] == "MSG"){
+         Serial.println(oList[1].c_str());
+      }
+  }
+ //Serial.println(oList.size());
+ 
+ Serial.println(comment);
+ updateMessageDisplay();
+}
+void print_num(int i)
+{
+   // std::cout << i << '\n';
+}
+std::function<void(int)> f_display = print_num;
+std::function<void(const char *comment)> user_message_function = daves_message_function2;
+
+std::function<void(int)> user_toolchange_function;
+
 void updateMessageDisplay()
 {
+  // Serial.println("updateMessageDisplay");
   bool updateRequired = false;
   for(int ix=0;ix<8;ix++){
-    if(messageCount[ix] != lastMessageCount[ix] ){
+    if(sendMessage[ix] == true){
        updateRequired = true;
     }
   }
@@ -40,12 +116,13 @@ void updateMessageDisplay()
      protocol_buffer_synchronize();
   }
    for(int ix=0;ix<8;ix++){
-      if(messageCount[ix] != lastMessageCount[ix] ){
-        lastMessageCount[ix]=messageCount[ix];
+      if(sendMessage[ix] == true){
         sendTextToDisplay(quotedComment[ix],ix);
-        Serial.printf("---%d %s\n",ix,quotedComment[ix]);
+        sendMessage[ix] = false;
+     //   Serial.printf("---%d %s\n",ix,quotedComment[ix]);
       }           
    }
+   
 }
 bool extractQuotedText(const char * line, uint8_t &char_counter, uint8_t &commentCounter, uint8_t localIntValue)
 {
@@ -110,6 +187,7 @@ void gc_sync_position()
 // coordinates, respectively.
 uint8_t gc_execute_line(char *line, uint8_t client)
 {
+  // Serial.printf("(MSG:%s\n",line);
 	/* -------------------------------------------------------------------------------------
 	   STEP 1: Initialize parser block struct and copy current g-code state modes. The parser
 	   updates these modes and commands as the block line is parser and will only be used and
@@ -171,7 +249,9 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 	}
 
 	while (line[char_counter] != 0) { // Loop until no more g-code words in line.
-
+      if(line[0] == '('){
+         grbl_send(CLIENT_ALL, "[MSG:MSG]\r\n");   
+      }
 		// Import the next g-code word, expecting a letter followed by a value. Otherwise, error out.
 		letter = line[char_counter];
 		if((letter < 'A') || (letter > 'Z')) {
@@ -386,7 +466,9 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 				}
 				break;
 			case 6: // tool change
-				grbl_send(CLIENT_ALL, "[MSG:Tool Change]\r\n");
+            word_bit = MODAL_GROUP_G0;
+            gc_block.non_modal_command = int_value;
+           	grbl_send(CLIENT_ALL, "[MSG:Tool Change]\r\n");
 				break;
 			case 7:
 			case 8:
@@ -411,6 +493,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 				}
            	break;
         case 117:{
+          // this probably all needs moving below.
             Serial.println("Hit M117");
               word_bit = MODAL_GROUP_M7;
              // Serial.println(*((char *)&line[char_counter]));
@@ -418,6 +501,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
               char_counter ++;
               if (!read_float(line, &char_counter, &localValue)) { FAIL(STATUS_BAD_NUMBER_FORMAT); } // [Expected word value]
               localIntValue = trunc(localValue);
+              //sendMessage[localIntValue] = true;
               //Serial.println(localIntValue);
               //Serial.println(line);
               extractQuotedText(line, char_counter, commentCounter, localIntValue);
@@ -665,8 +749,11 @@ uint8_t gc_execute_line(char *line, uint8_t client)
       // Serial.printf("Setting Tool %d %d\n",gc_state.tool,gc_block.values.t);
       gc_state.tool = gc_block.values.t;
     }
-    updateMessageDisplay();
+  //  updateMessageDisplay();
 	// [6. Change tool ]: N/A
+      if(gc_block.non_modal_command == 6){
+         
+      }
 	// [7. Spindle control ]: N/A
 	// [8. Coolant control ]: N/A
 
@@ -1251,6 +1338,14 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 
 
 	// [6. Change tool ]: NOT SUPPORTED
+   // should prob retrieve tool and comment here synchronise , and then update display
+      if (gc_block.non_modal_command == 6) {
+          mc_dwell(0.01f); // call synchronise
+          sendMessage[7] = true;
+          grbl_send(CLIENT_ALL, "[MSG:XXTool Change]\r\n");
+      }
+      updateMessageDisplay();
+      sendMessage[7] = false;
 
 	// [7. Spindle control ]:
 	if (gc_state.modal.spindle != gc_block.modal.spindle) {
