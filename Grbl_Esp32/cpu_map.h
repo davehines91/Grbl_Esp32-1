@@ -69,7 +69,7 @@
      #define SPINDLE_PWM_BIT_PRECISION 8
      #define SPINDLE_PWM_OFF_VALUE     0
      #define SPINDLE_PWM_MAX_VALUE     255  // TODO ESP32 Calc from resolution
-    #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)    
+//   #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)    
       
       #define X_LIMIT_BIT        0  
       #define Y_LIMIT_BIT        1 
@@ -84,7 +84,7 @@
       #define PROBE_MASK        1 // don't change     
       
       
-   //   #define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
+      #define CONTROL_SAFETY_DOOR_PIN   GPIO_NUM_35  // needs external pullup
       #define CONTROL_RESET_PIN         GPIO_NUM_34  // needs external pullup
       #define CONTROL_FEED_HOLD_PIN     GPIO_NUM_36  // needs external pullup 
       #define CONTROL_CYCLE_START_PIN   GPIO_NUM_39  // needs external pullup  

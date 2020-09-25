@@ -31,7 +31,7 @@ void spindle_init()
 #ifdef RS485_HUANYANG_MOTORCONTROL
     motorControlInit();
 #else
-    pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
+ /*   pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
 	
 	// Use DIR and Enable if pins are defined
 	#ifdef SPINDLE_ENABLE_PIN
@@ -46,7 +46,7 @@ void spindle_init()
     // use the LED control feature to setup PWM   https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html
     ledcSetup(SPINDLE_PWM_CHANNEL, SPINDLE_PWM_BASE_FREQ, SPINDLE_PWM_BIT_PRECISION); // setup the channel
     ledcAttachPin(SPINDLE_PWM_PIN, SPINDLE_PWM_CHANNEL); // attach the PWM to the pin
-	#endif
+	#endif*/
 #endif	
     // Start with spindle off off
 	  spindle_stop();
@@ -57,10 +57,10 @@ void spindle_stop()
 #ifdef RS485_HUANYANG_MOTORCONTROL
     motorStop();
 #else	
-  spindle_set_enable(false);
+/*  spindle_set_enable(false);
 	#ifdef SPINDLE_PWM_PIN
 		grbl_analogWrite(SPINDLE_PWM_CHANNEL, SPINDLE_PWM_OFF_VALUE);
-	#endif
+	#endif*/
 #endif
 }
 uint8_t SPINDLE_DIRECTION = SPINDLE_STATE_CW;
@@ -116,8 +116,8 @@ uint32_t spindle_compute_pwm_value(float rpm)
 #ifdef RS485_HUANYANG_MOTORCONTROL
    return 0;
 #else
-  uint32_t pwm_value;
-  rpm *= (0.010*sys.spindle_speed_ovr); // Scale by spindle speed override value.
+  uint32_t pwm_value=0;
+/*  rpm *= (0.010*sys.spindle_speed_ovr); // Scale by spindle speed override value.
   // Calculate PWM register value based on rpm max/min settings and programmed rpm.
   if ((settings.rpm_min >= settings.rpm_max) || (rpm >= settings.rpm_max)) {
     // No PWM range possible. Set simple on/off spindle control pin state.
@@ -136,7 +136,7 @@ uint32_t spindle_compute_pwm_value(float rpm)
     // NOTE: A nonlinear model could be installed here, if required, but keep it VERY light-weight.
     sys.spindle_speed = rpm;
     pwm_value = floor((rpm-settings.rpm_min)*pwm_gradient) + SPINDLE_PWM_MIN_VALUE;
-  }
+  }*/
   return(pwm_value);
 #endif
 }
@@ -169,6 +169,7 @@ void spindle_set_state(uint8_t state, float rpm)
     sys.spindle_speed = 0.0;    
     spindle_stop();  
   } else {
+    Serial.print("spindle_set_state ");Serial.print(rpm);Serial.print(" ");Serial.println(uint32_t(state));
 #ifdef RS485_HUANYANG_MOTORCONTROL
    setSpindleDirection(state);
 #endif
@@ -187,8 +188,21 @@ void spindle_set_state(uint8_t state, float rpm)
   }  
   sys.report_ovr_counter = 0; // Set to report change immediately
 }
-
-
+void setSpeed2(uint8_t state,float rpm)
+{
+#ifdef RS485_HUANYANG_MOTORCONTROL
+  if((rpm >0)&&(state != SPINDLE_DISABLE)){
+   if(motorSpeed((long)rpm)){
+     motorStart(SPINDLE_DIRECTION==SPINDLE_STATE_CW);
+    // Serial.print("SPINDLE_DIRECTION ");Serial.println(SPINDLE_DIRECTION);
+    // Serial.print("SPINDLE_ENABLE_CW ");Serial.println(SPINDLE_STATE_CW);
+    // Serial.print("SPINDLE_ENABLE_CCW ");Serial.println(SPINDLE_STATE_CCW);
+    // Serial.print("SPINDLE_DIRECTION ")Serial.print(SPINDLE_DIRECTION);
+      checkSpeed((long)rpm);  
+   }
+  }
+  #endif
+}
 void spindle_sync(uint8_t state, float rpm)
 {
 	if (sys.state == STATE_CHECK_MODE) { return; }

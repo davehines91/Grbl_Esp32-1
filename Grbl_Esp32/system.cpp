@@ -272,6 +272,23 @@ uint8_t system_check_safety_door_ajar()
 
 // Special handlers for setting and clearing Grbl's real-time execution flags.
 void system_set_exec_state_flag(uint8_t mask) {
+/////////////////
+
+
+ // prevent early resume
+    if (mask == EXEC_CYCLE_START) {
+        if (sys.state == STATE_HOLD) {
+            if (sys.suspend & SUSPEND_HOLD_COMPLETE) {
+                //strcat(status, "0");  // Ready to resume
+            } else {
+                grbl_send(CLIENT_ALL,"[MSG:Bart's Hold_Fix]\r\n"); 
+                return;
+            }
+        }
+    }
+
+//////////////////
+  
   // TODO uint8_t sreg = SREG;
   // TODO cli();
   sys_rt_exec_state |= (mask);
@@ -442,5 +459,3 @@ int32_t system_convert_corexy_to_y_axis_steps(int32_t *steps)
 {
 	return( (steps[A_MOTOR] - steps[B_MOTOR])/2 );
 }
-
-

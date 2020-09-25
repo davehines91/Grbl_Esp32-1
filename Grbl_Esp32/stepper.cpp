@@ -1328,7 +1328,7 @@ void set_stepper_disable(uint8_t isOn)  // isOn = true // to disable
 	if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) {
 		isOn = !isOn;    // Apply pin invert.
 	}
-
+///Serial.print("set_stepper_disable ");Serial.println((uint32_t)isOn);
 #ifdef STEPPERS_DISABLE_PIN
 	digitalWrite(STEPPERS_DISABLE_PIN, isOn );
 #endif
@@ -1351,7 +1351,3 @@ bool get_stepper_disable()   // returns true if steppers are disabled
 	return disabled;
 
 }
-
-
-
-

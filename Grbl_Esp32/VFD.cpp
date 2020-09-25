@@ -213,19 +213,31 @@ void motorControlInit()
      delay(500);
      digitalWrite(VFD_SERIAL_DIRECTION_CONTROL, LOW); // Read
      maxFrequency =  400000 ;//getParameter(0x5);
-  //   for(int ix=0;ix<=0x16;ix++){ 
-  ///     uint16_t maxFrequencyGT = getGTParameter(0x3000+ix);
-  //      Serial.print("maxFrequencyGT ");Serial.print(maxFrequencyGT);Serial.print(" ");Serial.println(maxFrequencyGT,HEX);
-   //  }
-   //  Serial.print("maxFrequency ");Serial.println(maxFrequency);
+     for(int ix=0;ix<=0x16;ix++){ 
+       uint16_t maxFrequencyGT = getGTParameter(0x3000+ix);
+        Serial.print("maxFrequencyGT ");Serial.print(maxFrequencyGT);Serial.print(" ");Serial.println(maxFrequencyGT,HEX);
+     }
+     Serial.print("maxFrequency ");Serial.println(maxFrequency);
      motorControlInitialised = true;
   }
   else{
-   //Serial.println("motorControlInit Called again");
+   Serial.print("motorControlInit Called again ");Serial.println(millis());
+   transmitTimer->initialiseTimer(4000);
+   
   }
 }
 
-
+void GTTest()
+{
+  uint16_t torqLoc  = 0x7;
+  uint16_t torq = getGTParameter(0x3000+torqLoc);
+  Serial.print("Torque O/P  ");Serial.print(torq);Serial.print(" ");Serial.println(torq,HEX);
+}
+void GTTest2()
+{
+  uint16_t torq = getGTParameter(0x5000);
+  Serial.print("Error O/P  ");Serial.print(torq);Serial.print(" ");Serial.println(torq,HEX);
+}
 bool motorHYStart(bool forward)
 {
 	Serial.println("motorStart");

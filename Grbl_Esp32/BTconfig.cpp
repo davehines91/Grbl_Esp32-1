@@ -31,6 +31,7 @@
 
 BTConfig bt_config;
 BluetoothSerial SerialBT;
+//BluetoothSerial SerialBT2;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,6 +42,7 @@ const uint8_t *esp_bt_dev_get_address(void);
 
 String BTConfig::_btname = "";
 String BTConfig::_btclient = "";
+//String BTConfig::_btclient2 = "";
 
 BTConfig::BTConfig(){
 }
@@ -72,7 +74,30 @@ static void my_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     }
 }
+/*static void my_spp_cb2(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
+{
+    switch (event)
+    {
+    case ESP_SPP_SRV_OPEN_EVT://Server connection open
+        {
+        char str[18];
+        str[17]='\0';
+        uint8_t * addr = param->srv_open.rem_bda;
+        sprintf(str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+        BTConfig::_btclient2 = str;
+        grbl_sendf(CLIENT_ALL,"[MSG:BT2 Connected with %s]\r\n", str);
+        }
+        break;
 
+    case ESP_SPP_CLOSE_EVT://Client connection closed
+        grbl_send(CLIENT_ALL,"[MSG:BT2 Disconnected]\r\n");
+        BTConfig::_btclient2="";
+        break;
+    default:
+        break;
+    }
+}
+*/
 const char *BTConfig::info(){
     static String result;
     String tmp;
@@ -140,7 +165,12 @@ void BTConfig::begin() {
             SerialBT.register_callback(&my_spp_cb);
             grbl_sendf(CLIENT_ALL,"[MSG:BT Started with %s]\r\n", _btname.c_str());
         }
-        
+     //   if (!SerialBT2.begin("name2")){
+      //    SerialBT2.register_callback(&my_spp_cb2);
+      //  }
+      //  else{
+      //    grbl_sendf(CLIENT_ALL,"[MSG:BT Started with %s]\r\n", "name2");
+     ///   }
    }else end();
      
 }

@@ -135,7 +135,7 @@ char loc_buf[64];
 // formats axis values into a string and returns that string in rpt
 static void report_util_axis_values(float *axis_value, char *rpt) {
   uint8_t idx;
-	char axisVal[10];
+	char axisVal[16];
 	float unit_conv = 1.0; // unit conversion multiplier..default is mm
 	
 	rpt[0] = '\0';
@@ -146,19 +146,17 @@ static void report_util_axis_values(float *axis_value, char *rpt) {
   for (idx=0; idx<N_AXIS; idx++) {
 		
 		if (bit_istrue(settings.flags,BITFLAG_REPORT_INCHES))
-			sprintf(axisVal, "%4.4f", axis_value[idx] * unit_conv);  // Report inches to 4 decimals
+			snprintf(axisVal,10, "%4.4f", axis_value[idx] * unit_conv);  // Report inches to 4 decimals
 		else
-			sprintf(axisVal, "%4.3f", axis_value[idx] * unit_conv);  // Report mm to 3 decimals
+			snprintf(axisVal,10, "%4.3f", axis_value[idx] * unit_conv);  // Report mm to 3 decimals
 			
 		strcat(rpt, axisVal);
     
-    if (idx < (N_AXIS-1)) 
-		{ 
+    if (idx < (N_AXIS-1)){ 
 			strcat(rpt, ",");
 		}
   }
 }
-
 void get_state(char *foo)
 {        
     // pad them to same length
@@ -617,7 +615,7 @@ void report_realtime_status(uint8_t client)
   float print_position[N_AXIS];
 	
 	char status[200];
-	char temp[50];
+	char temp[255];
 	
   system_convert_array_steps_to_mpos(print_position,current_position);
 
@@ -684,6 +682,9 @@ void report_realtime_status(uint8_t client)
     strcat(status, "|WPos:");
   }
   report_util_axis_values(print_position, temp);
+  if(strlen(temp)>50){
+    Serial.print(strlen(temp));Serial.print("");Serial.println(temp);
+  }
 	strcat(status, temp);
    sendPositionToDisplay(tmp[0],tmp[1],tmp[2],gc_state.modal.coord_select,gc_state.tool,sys.state,globalSpeed);
 
@@ -832,7 +833,6 @@ void report_realtime_status(uint8_t client)
 			strcat(status, temp);
 		}
 	#endif
-
   strcat(status, ">\r\n");
 	
 	grbl_send(client, status);

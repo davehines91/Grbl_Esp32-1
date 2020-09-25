@@ -59,6 +59,10 @@ std::vector<std::string> splitString(const std::string &sourceStr, const std::st
 void daves_message_function2(const char *comment)
 {
   std::string commentS = comment;
+  if(strlen(comment) > 20){
+    Serial.print("messagefunc ");Serial.print (strlen(comment));
+    Serial.print("  ");Serial.println(comment);
+  }
   auto oList = splitString(commentS,",",false);
   
   if(oList.size() >2 ){
@@ -67,6 +71,12 @@ void daves_message_function2(const char *comment)
       for(auto i : oList[2]){
          quotedComment[localIntValue][commentCounter++] = i;
       }
+      if(commentCounter >31){
+        commentCounter = 31;
+        Serial.println("truncating message");
+        
+      }
+      quotedComment[localIntValue][commentCounter] = 0;
       if(oList.size() ==3 ){
          sendMessage[localIntValue] = true;
       }
@@ -475,6 +485,20 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 			case 9:
 				word_bit = MODAL_GROUP_M8;
 				switch(int_value) {
+        case 7:
+        Serial.println("M7");
+        void GTTest2();
+        GTTest2();
+        Serial.println("-------");
+        break;
+        case 8:
+        Serial.println("M8");
+        void GTTest();
+        GTTest();
+        Serial.println("-------");
+        //  set_stepper_disable(false);
+        break;
+       
 #ifdef COOLANT_MIST_PIN
 				case 7:
 					gc_block.modal.coolant = COOLANT_MIST_ENABLE;
@@ -483,15 +507,26 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 #ifdef COOLANT_FLOOD_PIN
 				case 8:
 					gc_block.modal.coolant = COOLANT_FLOOD_ENABLE;
+          
 					break;
 #endif
 				case 9:
 					gc_block.modal.coolant = COOLANT_DISABLE;
+        Serial.println("M9");
+        //  set_stepper_disable(true);
 					break;
+        
 				default:
 					FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
 				}
-           	break;
+         break;
+         #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+            case 56:
+              Serial.println("M56");
+              word_bit = MODAL_GROUP_M9;
+              gc_block.modal.override = OVERRIDE_PARKING_MOTION;
+              break;
+        #endif    
         case 117:{
           // this probably all needs moving below.
             Serial.println("Hit M117");
@@ -580,6 +615,7 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 			case 'P':
 				word_bit = WORD_P;
 				gc_block.values.p = value;
+        Serial.println(gc_block.values.p);
 				break;
 			// NOTE: For certain commands, P value must be an integer, but none of these commands are supported.
 			// case 'Q': // Not supported
@@ -756,7 +792,15 @@ uint8_t gc_execute_line(char *line, uint8_t client)
       }
 	// [7. Spindle control ]: N/A
 	// [8. Coolant control ]: N/A
-
+// [9. Override control ]: Not supported except for a Grbl-only parking motion override control.
+  #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+    if (bit_istrue(command_words,bit(MODAL_GROUP_M9))) { // Already set as enabled in parser.
+      if (bit_istrue(value_words,bit(WORD_P))) {
+        if (gc_block.values.p == 0.0) { gc_block.modal.override = OVERRIDE_DISABLED; }
+        bit_false(value_words,bit(WORD_P));
+      }
+    }
+  #endif
 	// [10. Dwell ]: P value missing. P is negative (done.) NOTE: See below.
 	if (gc_block.non_modal_command == NON_MODAL_DWELL) {
 		if (bit_isfalse(value_words,bit(WORD_P))) {
@@ -1371,7 +1415,12 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 	pl_data->condition |= gc_state.modal.coolant; // Set condition flag for planner use.
 
 	// [9. Enable/disable feed rate or spindle overrides ]: NOT SUPPORTED. Always enabled.
-
+#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+    if (gc_state.modal.override != gc_block.modal.override) {
+      gc_state.modal.override = gc_block.modal.override;
+      mc_override_ctrl_update(gc_state.modal.override);
+    }
+#endif
 	// [10. Dwell ]:
 	if (gc_block.non_modal_command == NON_MODAL_DWELL) {
 		mc_dwell(gc_block.values.p);
@@ -1513,8 +1562,13 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 			gc_state.modal.coord_select = 0; // G54
 			gc_state.modal.spindle = SPINDLE_DISABLE;
 			gc_state.modal.coolant = COOLANT_DISABLE;
-			// gc_state.modal.override = OVERRIDE_DISABLE; // Not supported.
-
+			#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+        #ifdef DEACTIVATE_PARKING_UPON_INIT
+          gc_state.modal.override = OVERRIDE_DISABLED;
+        #else
+          gc_state.modal.override = OVERRIDE_PARKING_MOTION;
+        #endif
+      #endif
 #ifdef RESTORE_OVERRIDES_AFTER_PROGRAM_END
 			sys.f_override = DEFAULT_FEED_OVERRIDE;
 			sys.r_override = DEFAULT_RAPID_OVERRIDE;

@@ -25,7 +25,7 @@
 #define BT_NAME_ENTRY "BT_NAME"
 
 //defaults values
-#define DEFAULT_BT_NAME "btgrblesp"
+#define DEFAULT_BT_NAME "btgrblespPNP"
 
 
 //boundaries
@@ -56,6 +56,7 @@ public:
     static void reset_settings();
     static bool Is_BT_on();
     static String _btclient;
+ //   static String _btclient2;
     private :
     static String _btname;
 };

@@ -9,7 +9,7 @@ struct LcdMessage{
   uint8_t state;
   uint16_t rpm;
   union{
-    char text[32];
+    char text[64];
     struct{
       float currentPosn[3];
       uint8_t coordSys;

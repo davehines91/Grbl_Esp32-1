@@ -52,13 +52,42 @@ void cncTDisplay(const LcdMessage &message)
    }
   //Serial.println("cncTDisplay End");
 }
+char msg[32];
+void receiveEvent(int howMany)
+{
+  char *loopC = (char *)&msg;
+  for (int ix = 0; ix < howMany; ix++) {
+    *loopC = Wire.read();
+    *loopC++;
+  }
+  Serial.print("Master received from ");
+  Serial.println(msg);
+  //msg.print();
+}
+void requestEvent() {
 
+ // Massage msg;
+//  msg.id = 9;
+    char msg[]={"Hello "};
+//  msg.requestId = requestId++;
+//  msg.value = requestCount;
+//  Wire.write((char *)&msg, sizeof(Massage));
+   Wire.write((uint8_t*)msg,6); // respond with message of 6 bytes
+  // Wire.write(((char *)&requestCount)[0]);
+  // Wire.write(((char *)&requestCount)[1]);
+  // Wire.write(((char *)&requestCount)[2]);
+  // Wire.write(((char *)&requestCount)[3]);
+  // Serial.print("i2c ");Serial.println(requestCount);
+
+  // as expected by master
+}
 void i2cCheckTask(void *pvParameters)
 {
  // setupOled();
     Wire.begin(IC2_SDA_PIN,IC2_SCL_PIN);//GPIO_NUM_16,GPIO_NUM_19);// blue, green  SDA_PIN, SCL_PIN
     Wire.setClock(800000);
- 
+ //   Wire.onRequest(requestEvent); // register event
+ //   Wire.onReceive(receiveEvent);
   //create a queue to handle gpio event from isr
   softwareInterruptQueue = xQueueCreate(100,sizeof(LcdMessage));
    long lastUpdate=0;
@@ -116,7 +145,8 @@ void sendTextToDisplay(char *msg,uint8_t lineNumber)
   lmsg.type= 0;
   lmsg.lineNumber = lineNumber <8 ? lineNumber : 7;
   strncpy(lmsg.text,msg,32);
-  //Serial.printf("sendTextToDisplay 2  %d %s\n",lineNumber,lmsg.text);
+  lmsg.text[31] = 0;
+  Serial.printf("sendTextToDisplay 2  %d %s\n",lineNumber,lmsg.text);
   if(softwareInterruptQueue != nullptr){
    //Serial.printf("xQueueSendFromISR");
       xQueueSendFromISR(softwareInterruptQueue, &lmsg, NULL);
