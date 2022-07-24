@@ -98,6 +98,23 @@ static void my_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     }
 }
 */
+
+void printDeviceAddress(uint8_t client) 
+{
+  const uint8_t* point = esp_bt_dev_get_address();
+  char btaddress[32];
+  btaddress[0] = 0;
+  for (int i = 0; i < 6; i++) {
+    char str[3];
+    sprintf(str, "%02X", (int)point[i]);
+    strcat(btaddress,str); 
+    if (i < 5){
+      strcat(btaddress,":");
+    }
+   }
+   grbl_sendf(client,"[MSG:Bluetooth Address %s ]\r\n",btaddress);
+}
+
 const char *BTConfig::info(){
     static String result;
     String tmp;

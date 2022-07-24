@@ -259,7 +259,7 @@ void report_feedback_message(uint8_t message_code)  // OK to send to all clients
   }  		
 }
 
-
+void printDeviceAddress(uint8_t client) ;
 // Welcome message
 void report_init_message(uint8_t client)
 {
@@ -267,6 +267,7 @@ void report_init_message(uint8_t client)
 	#ifdef CPU_MAP_NAME
 		grbl_send(client,"[MSG:Using cpu_map..." CPU_MAP_NAME "]\r\n");
 	#endif
+  printDeviceAddress(client);
 }
 
 // Grbl help message
@@ -373,7 +374,7 @@ void report_ngc_parameters(uint8_t client)
   float coord_data[N_AXIS];
   uint8_t coord_select;
 	char temp[50];
-	char ngc_rpt[400];	
+	char ngc_rpt[800];	
 	
 	ngc_rpt[0] = '\0';	
 	
@@ -384,10 +385,17 @@ void report_ngc_parameters(uint8_t client)
     }
 		strcat(ngc_rpt, "[G");    
     switch (coord_select) {
-      case 6: strcat(ngc_rpt, "28"); break;
-      case 7: strcat(ngc_rpt, "30"); break;
+     // case 6: strcat(ngc_rpt, "28"); break;
+     // case 7: strcat(ngc_rpt, "30"); break;
+      case 12: strcat(ngc_rpt, "28"); break;
+      case 13: strcat(ngc_rpt, "30"); break;
       default: 
-			  sprintf(temp, "%d", coord_select+54);
+        if(coord_select+54 > 59){
+            sprintf(temp, "59.%d", coord_select-5);
+        }
+        else{
+			    sprintf(temp, "%d", coord_select+54);
+        }
 				strcat(ngc_rpt, temp);
 				break; // G54-G59
     }    
@@ -433,8 +441,12 @@ void report_gcode_modes(uint8_t client)
 		sprintf(temp, "%d", gc_state.modal.motion);	    
   }
 	strcat(modes_rpt, temp);
-
-	sprintf(temp, " G%d", gc_state.modal.coord_select+54);
+  if(gc_state.modal.coord_select+54 > 59){
+	  sprintf(temp, " G59.%d", gc_state.modal.coord_select-5);
+  }
+  else{
+    sprintf(temp, " G%d", gc_state.modal.coord_select+54);
+  }
 	strcat(modes_rpt, temp);
 	
   sprintf(temp, " G%d", gc_state.modal.plane_select+17);

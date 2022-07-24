@@ -404,6 +404,14 @@ uint8_t gc_execute_line(char *line, uint8_t client)
 			case 57:
 			case 58:
 			case 59:
+        if (mantissa != 0) {
+          //grbl_sendf(CLIENT_SERIAL,"Mantissa is %d\r\n",mantissa);
+          mantissa /=10;
+          if(mantissa <7){
+            int_value+=mantissa;
+            mantissa = 0;
+          }
+        }
 				// NOTE: G59.x are not supported. (But their int_values would be 60, 61, and 62.)
 				word_bit = MODAL_GROUP_G12;
 				gc_block.modal.coord_select = int_value - 54; // Shift to array indexing.
