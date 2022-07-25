@@ -453,6 +453,9 @@ void stepper_init()
 	#ifdef Y_DIRECTION_PIN
 		pinMode(Y_DIRECTION_PIN, OUTPUT);
 	#endif
+	#ifdef Y_DIRECTION_B_PIN
+		pinMode(Y_DIRECTION_B_PIN, OUTPUT);
+	#endif
 	#ifdef Z_DIRECTION_PIN
 		pinMode(Z_DIRECTION_PIN, OUTPUT);
 	#endif
@@ -647,6 +650,8 @@ void set_direction_pins_on(uint8_t onMask)
 #endif
 #ifdef Y_DIRECTION_PIN
 	digitalWrite(Y_DIRECTION_PIN, (onMask & (1<<Y_AXIS)));
+	digitalWrite(Y_DIRECTION_B_PIN, (onMask & (1<<Y_AXIS)));
+	WOBBLE
 #endif
 #ifdef Z_DIRECTION_PIN
 	digitalWrite(Z_DIRECTION_PIN, (onMask & (1<<Z_AXIS)));
@@ -665,6 +670,9 @@ void set_stepper_pins_on(uint8_t onMask)
 
 #ifdef Y_STEP_PIN
 	digitalWrite(Y_STEP_PIN, (onMask & (1<<Y_AXIS)));
+	#ifndef Y_STEP_B_PIN
+	digitalWrite(Y_STEP_B_PIN, (onMask & (1<<Y_AXIS)));
+	#endif
 #endif
 
 #ifdef Z_STEP_PIN

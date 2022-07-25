@@ -1,3 +1,7 @@
 .pioenvs/
 
 *.orig
+.pio/
+*~
+.vscode
+/Grbl_Esp32/stackDump.txt
