@@ -25,8 +25,8 @@
 #define BT_NAME_ENTRY "BT_NAME"
 
 //defaults values
-#define DEFAULT_BT_NAME "btgrblespPNP"
-
+//#define DEFAULT_BT_NAME "btgrblespPNP"
+#define DEFAULT_BT_NAME "DavesCNC3"
 
 //boundaries
 #define MAX_BTNAME_LENGTH     32

@@ -651,7 +651,6 @@ void set_direction_pins_on(uint8_t onMask)
 #ifdef Y_DIRECTION_PIN
 	digitalWrite(Y_DIRECTION_PIN, (onMask & (1<<Y_AXIS)));
 	digitalWrite(Y_DIRECTION_B_PIN, (onMask & (1<<Y_AXIS)));
-	WOBBLE
 #endif
 #ifdef Z_DIRECTION_PIN
 	digitalWrite(Z_DIRECTION_PIN, (onMask & (1<<Z_AXIS)));

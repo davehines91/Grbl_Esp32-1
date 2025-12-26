@@ -38,7 +38,7 @@
 #ifdef DAVES_MAP_ESP32
    #define CPU_MAP_NAME "DAVES_MAP_ESP32-a"
    #define RS485_HUANYANG_MOTORCONTROL
-   //#define USE_GANGED_AXES
+   #define USE_GANGED_AXES
       #define X_STEP_PIN      GPIO_NUM_12
       #define Y_STEP_PIN      GPIO_NUM_14
 	  #define Y_STEP_B_PIN    GPIO_NUM_23
